@@ -57,6 +57,8 @@ qr-pro/
 ├─ .gitignore
 ├─ package.json
 └─ README.md
+-----
+
 ## Available APIs
 
 - `POST /api/shorten` – Create a dynamic short link  
