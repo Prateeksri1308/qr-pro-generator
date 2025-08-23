@@ -57,95 +57,48 @@ qr-pro/
 ├─ .gitignore
 ├─ package.json
 └─ README.md
-⚙️ Setup Instructions
-Frontend (Static)
+## Available APIs
 
-Clone the repo:
+- `POST /api/shorten` – Create a dynamic short link  
+- `GET /api/analytics/:code` – Retrieve QR scan analytics
 
-git clone https://github.com/Prateek1308/qr-pro.git
-cd qr-pro/frontend
+---
 
+## 🚀 Deployment Guide
 
-Install Tailwind CSS (if modifying styles):
+### Frontend (Netlify)
+1. Push frontend to GitHub  
+2. Connect GitHub repo to Netlify  
+3. Deploy site
 
-npm install -D tailwindcss postcss autoprefixer
-npx tailwindcss init
+### Backend Options (Google Cloud Run / Railway / Render)
+1. Push backend code to GitHub  
+2. Connect repository to your preferred service  
+3. Configure environment variables (if any)  
+4. Deploy
 
+---
 
-Open index.html in your browser or run a local server:
+## 🤝 Contributing
+We welcome contributions!  
 
-npx live-server
+1. Fork the repository  
+2. Create a feature branch (`git checkout -b feature/my-feature`)  
+3. Commit your changes (`git commit -am 'Add feature'`)  
+4. Push to branch (`git push origin feature/my-feature`)  
+5. Open a Pull Request  
 
-Backend (Optional Pro Features)
+> Please ensure your code follows existing style and passes any linting/tests.
 
-Navigate to backend folder:
+---
 
-cd backend
+## 👨‍💻 Author
 
+**Prateek Srivastava**  
+- LinkedIn: [https://www.linkedin.com/in/prateek-srivastava-backend/](https://www.linkedin.com/in/prateek-srivastava-backend/)  
+- GitHub: [https://github.com/Prateek1308](https://github.com/Prateek1308)
 
-Install dependencies:
+---
 
-npm install
-
-
-Start server:
-
-node server.js
-
-
-Available APIs:
-
-POST /api/shorten – Create a dynamic short link
-
-GET /api/analytics/:code – Retrieve QR scan analytics
-🚀 Deployment Guide
-Frontend
-
-Netlify:
-
-Push frontend to GitHub
-
-Connect GitHub repo to Netlify
-
-Deploy site
-
-Backend Options
-
-Google Cloud Run / Railway / Render:
-
-Push backend code to GitHub
-
-Connect repository to your preferred service
-
-Configure environment variables (if any)
-
-Deploy
-
-🤝 Contributing
-
-We welcome contributions!
-
-Fork the repository
-
-Create a feature branch (git checkout -b feature/my-feature)
-
-Commit your changes (git commit -am 'Add feature')
-
-Push to branch (git push origin feature/my-feature)
-
-Open a Pull Request
-
-Please ensure your code follows existing style and passes any linting/tests.
-
-👨‍💻 Author
-
-Prateek Srivastava
-
-LinkedIn: https://www.linkedin.com/in/prateek-srivastava-backend/
-
-GitHub: https://github.com/Prateek1308
-
-📄 License
-
-This project is licensed under the MIT License – see the LICENSE
- file for details.
+## 📄 License
+This project is licensed under the MIT License – see the [LICENSE](LICENSE) file for details.
