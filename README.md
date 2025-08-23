@@ -1,6 +1,7 @@
 # 🎯 QR Pro — Modern QR Code Generator
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/Prateek1308/qr-pro?style=social)](https://github.com/Prateek1308/qr-pro/stargazers)
 
 > Generate professional QR codes effortlessly — gradient backgrounds, logos, multi-type support, live previews, batch generation, analytics, and more.
 
@@ -11,34 +12,41 @@
 
 ---
 
+## 📝 About QR Pro
+QR Pro is a **modern, professional QR Code generator** built for developers, creators, and businesses. Generate and customize QR codes with ease, live previews, batch processing, dynamic short links, and analytics. Built with **HTML, Tailwind CSS, JavaScript**, and optionally **Node.js backend** for Pro features.
+
+---
+
 ## 🚀 Key Features
 
-### Customization & Design
-- 🎨 **Gradient & Backgrounds** – Fully customizable colors and gradients  
-- 🖼️ **Logo Embedding** – Upload or drag & drop your logo  
-- 🖌️ **Live Preview** – Instant updates as you type or change settings  
+### 🎨 Customization & Design
+- Gradient & background customization  
+- Logo embedding (upload or drag & drop)  
+- Live preview with instant updates
 
-### QR Types Supported
-- 🌐 **URL** – LinkedIn, Instagram, websites  
-- 💬 **WhatsApp** – Pre-filled message links  
-- 📶 **WiFi** – Share SSID & password easily  
-- 👤 **vCard** – Contact cards  
-- 📄 **Plain Text** – Any text you want  
+### 📱 QR Types Supported
+- URL (LinkedIn, Instagram, websites)  
+- WhatsApp with pre-filled messages  
+- WiFi credentials (SSID + password)  
+- vCard (contact cards)  
+- Plain text
 
-### Export & Pro Features
-- 📂 **Download Options** – PNG ✅, SVG ✅, PDF ❌ (coming soon)  
-- ⚡ **Batch Generation** – Upload CSV and generate multiple codes as ZIP  
-- 🔗 **Dynamic Short Links** – Update QR destination anytime (`/api/shorten`)  
-- 📊 **Analytics** – Lookup scans and performance (`/api/analytics/:code`)  
-- 🏷️ **Verified Badge (Future Pro)** – Highlight professional QR codes  
+### 🖥️ Export & Pro Features
+- Download: **PNG ✅**, **SVG ✅**, **PDF ❌ (planned)**  
+- Batch QR generation from CSV (download as ZIP)  
+- Dynamic short links (`POST /api/shorten`)  
+- Analytics lookup (`GET /api/analytics/:code`)  
+- Future Pro “Verified Badge”  
 
-### UX & Simplicity
-- ❌ **No Email Signup** – Instant usage, simplified workflow
+### ⚡ UX & Simplicity
+- No email signup — instant access  
+- Clean, modern interface
 
 ---
 
 ## 🏗️ Project Structure
 
+```text
 qr-pro/
 ├─ frontend/
 │  ├─ index.html
@@ -56,10 +64,47 @@ qr-pro/
 ├─ .gitignore
 ├─ package.json
 └─ README.md
------
+---
 
-## Available APIs
+## ⚙️ Setup Instructions
 
+### Frontend (Static)
+
+**Clone the repository:**
+```bash
+git clone https://github.com/Prateek1308/qr-pro.git
+cd qr-pro/frontend
+```
+
+**Install Tailwind CSS (if modifying styles):**
+```bash
+npm install -D tailwindcss postcss autoprefixer
+npx tailwindcss init
+```
+
+**Open `index.html` in your browser or run a local server:**
+```bash
+npx live-server
+```
+
+### Backend (Optional Pro Features)
+
+**Navigate to backend folder:**
+```bash
+cd backend
+```
+
+**Install dependencies:**
+```bash
+npm install
+```
+
+**Start server:**
+```bash
+node server.js
+```
+
+**Available APIs:**
 - `POST /api/shorten` – Create a dynamic short link  
 - `GET /api/analytics/:code` – Retrieve QR scan analytics
 
