@@ -39,7 +39,6 @@
 
 ## 🏗️ Project Structure
 
-```text
 qr-pro/
 ├─ frontend/
 │  ├─ index.html
