@@ -1,0 +1,31 @@
+/* minor additions, rest handled by Tailwind */
+.template-btn { font-size: 0.85rem; }
+.dropzone-dragover { box-shadow: 0 6px 20px rgba(10, 66, 130, 0.08); border-color: #0a66c2; }
+
+/* public/style.css */
+.dropzone-dragover{ box-shadow: 0 6px 20px rgba(10, 66, 130, 0.12); border-color:#0a66c2; }
+
+
+/* merged from upload */
+/* minor additions, rest handled by Tailwind */
+.template-btn { font-size: 0.85rem; }
+.dropzone-dragover { box-shadow: 0 6px 20px rgba(10, 66, 130, 0.08); border-color: #0a66c2; }
+/* public/style.css */
+
+/* Minor additions, rest handled by Tailwind */
+.template-btn { 
+  font-size: 0.85rem; 
+}
+
+/* Dropzone dragover state */
+.dropzone-dragover { 
+  box-shadow: 0 6px 20px rgba(10, 66, 130, 0.12); 
+  border-color: #0a66c2; 
+}
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
