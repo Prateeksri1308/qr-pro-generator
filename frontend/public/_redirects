@@ -1,1 +1,1 @@
-/api/* https://YOUR-BACKEND.onrender.com/:splat 200
+/api/*  https://qr-pro-generator.onrender.com/api/:splat  200
