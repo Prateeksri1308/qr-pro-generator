@@ -1,9 +1,0 @@
-{
-  "name": "LinkedIn QR — Pro",
-  "short_name": "QRPro",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#0a66c2",
-  "icons": []
-}

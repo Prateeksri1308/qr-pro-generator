@@ -20,3 +20,27 @@ Then open http://localhost:3000
 - Added a `start` script in `package.json` (if missing).
 - Renamed any `menifest.json` → `manifest.json`.
 - Backed up originals in `_backup_originals/`.
+
+# Split Frontend/Backend for Netlify + Render
+
+## Structure
+- `frontend/` → static site for Netlify
+- `backend/` → Node/Express + better-sqlite3 for Render/Railway
+
+## Netlify
+- Base directory: `frontend`
+- Build command: *(empty)*
+- Publish directory: `public`
+
+## Render (Backend)
+- Root directory: `backend`
+- Build command: `npm install`
+- Start command: `npm start`
+- Env:
+  - `FRONTEND_ORIGIN` = `https://YOUR-SITE.netlify.app`
+  - `DATABASE_PATH` = `/var/data/qr.db`
+- Disk:
+  - Add a disk and mount to `/var/data`
+
+## Frontend → Backend
+- Edit `frontend/public/_redirects` and replace the Render URL.
