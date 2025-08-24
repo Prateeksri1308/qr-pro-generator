@@ -8,7 +8,7 @@
 ---
 
 ## 🔗 Live Demo
-> [Insert your live demo link here]
+> [[Insert your live demo link here](https://linkqr-pro.netlify.app/)]
 
 ---
 
