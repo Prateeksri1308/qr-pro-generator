@@ -8,7 +8,7 @@ require('dotenv').config();
 const app = express();
 
 // ---- Config ----
-const PORT = process.env.PORT || 3000;
+const PORT = parseInt(process.env.PORT, 10) || 3000;
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || '*';
 const DATABASE_PATH = process.env.DATABASE_PATH || path.join(__dirname, 'qr.db');
 
@@ -55,7 +55,9 @@ app.get('/healthz', (_req, res) => res.json({ ok: true }));
 app.get('/', (_req, res) => res.type('text').send('Backend OK'));
 
 // ---- Start ----
-app.listen(PORT, () => {
+// ---- Start ----
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`✅ Server listening on port ${PORT}`);
 });
+
 
