@@ -249,14 +249,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // ✅ Only clear gap if logo exists
-    if (logoDataUrl) {
-      const clear = Math.round(size * (logoSize.value / 100));
-      const cx = Math.round((size - clear) / 2);
-      svg += `<rect x="${cx}" y="${cx}" width="${clear}" height="${clear}" fill="${bg}"/>`;
-    }
+    // ✅ Only embed logo if uploaded
+if (logoDataUrl) {
+  const side = Math.round(size * (logoSize.value / 100));
+  const pos = Math.round((size - side) / 2);
+  svg += `<rect x="${pos}" y="${pos}" width="${side}" height="${side}" fill="${bg}"/>`; // background under logo
+  svg += `<image href="${logoDataUrl}" x="${pos}" y="${pos}" width="${side}" height="${side}" />`;
+}
 
-    svg += `</svg>`;
 
     const blob = new Blob([svg], { type: "image/svg+xml" });
     const url = URL.createObjectURL(blob);
