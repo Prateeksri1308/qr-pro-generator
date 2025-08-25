@@ -50,6 +50,13 @@ document.addEventListener('DOMContentLoaded', () => {
   let logoDataUrl = null;
   let lastCanvas = null;
 
+  // ✅ Helper: consistent logo placement across preview & downloads
+  function getLogoPlacement(size, percent) {
+    const side = Math.round(size * (percent / 100));
+    const pos = Math.round((size - side) / 2);
+    return { pos, side };
+  }
+
   // Dynamic form fields
   const forms = {
     url: () => `<input id="field_url" class="w-full border px-3 py-2 rounded" placeholder="https://example.com" />`,
@@ -153,14 +160,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const cell = size / modules;
 
-    // calculate logo safe zone
-    let logoPos = null;
-    if (logoDataUrl) {
-      const side = Math.round(size * (logoSize.value / 100));
-      logoPos = { pos: Math.round((size - side) / 2), side };
-    }
+    let logoPos = logoDataUrl ? getLogoPlacement(size, logoSize.value) : null;
 
-    // draw modules skipping logo area
     ctx.fillStyle = grad;
     for (let r = 0; r < modules; r++) {
       for (let c = 0; c < modules; c++) {
@@ -173,7 +174,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // draw logo last
     if (logoDataUrl) {
       const img = new Image();
       img.onload = () => {
@@ -257,13 +257,8 @@ document.addEventListener('DOMContentLoaded', () => {
             </linearGradient></defs>`;
     svg += `<rect width="100%" height="100%" fill="${bg}"/>`;
 
-    let logoPos = null;
-    if (logoDataUrl) {
-      const side = Math.round(size * (logoSize.value / 100));
-      logoPos = { pos: Math.round((size - side) / 2), side };
-    }
+    let logoPos = logoDataUrl ? getLogoPlacement(size, logoSize.value) : null;
 
-    // draw modules skipping logo zone
     for (let r = 0; r < modules; r++) {
       for (let c = 0; c < modules; c++) {
         if (q.isDark(r, c)) {
@@ -275,7 +270,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // logo
     if (logoDataUrl) {
       svg += `<image xlink:href="${logoDataUrl}" 
                      x="${logoPos.pos}" y="${logoPos.pos}" 
