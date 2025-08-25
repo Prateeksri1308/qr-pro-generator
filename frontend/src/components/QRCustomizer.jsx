@@ -28,7 +28,6 @@ const QRCustomizer = () => {
     });
   }
 
-  // Renders the live preview onto <canvas>
   async function renderPreview() {
     const url = linkedinUrl.trim();
     const canvas = canvasRef.current;
@@ -43,12 +42,10 @@ const QRCustomizer = () => {
       ctx.fillText("Enter LinkedIn URL to preview", 16, 24);
       return;
     }
-
     await ensureQrLib();
     const q = window.qrcode(0, "H");
     q.addData(url);
     q.make();
-
     const modules = q.getModuleCount();
     const size = 360;
     canvas.width = size;
@@ -77,13 +74,13 @@ const QRCustomizer = () => {
       }
     }
 
-    // Only draw center + logo if a logo exists
-    if (logoDataUrl) {
-      const clearBox = Math.round(size * 0.28);
-      const x = Math.round((size - clearBox) / 2);
-      ctx.fillStyle = bgColor || "#fff";
-      ctx.fillRect(x, x, clearBox, clearBox);
+    // Clear middle for logo
+    const clearBox = Math.round(size * 0.28);
+    const x = Math.round((size - clearBox) / 2);
+    ctx.fillStyle = bgColor || "#fff";
+    ctx.fillRect(x, x, clearBox, clearBox);
 
+    if (logoDataUrl) {
       await new Promise((res) => {
         const img = new Image();
         img.onload = () => {
@@ -94,6 +91,8 @@ const QRCustomizer = () => {
             dh = img.height * scale;
           const dx = x + (clearBox - dw) / 2;
           const dy = x + (clearBox - dh) / 2;
+          ctx.fillStyle = bgColor || "#fff";
+          ctx.fillRect(x, x, side, side);
           ctx.drawImage(img, dx, dy, dw, dh);
           res(null);
         };
@@ -106,70 +105,77 @@ const QRCustomizer = () => {
     renderPreview();
   }, [linkedinUrl, gradientStart, gradientEnd, bgColor, logoDataUrl, logoSize]);
 
-  // === Export Functions ===
-  function downloadPNG() {
-    if (!canvasRef.current) return;
-    const a = document.createElement("a");
-    a.href = canvasRef.current.toDataURL("image/png");
-    a.download = "linkedin_qr.png";
-    a.click();
+  function onDrop(e) {
+    e.preventDefault();
+    const f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!f) return;
+    const fr = new FileReader();
+    fr.onload = (ev) => setLogoDataUrl(ev.target.result);
+    fr.readAsDataURL(f);
   }
 
-  async function downloadSVG() {
-    const url = linkedinUrl.trim();
-    if (!url) {
-      toast.error("Enter a URL first");
+  async function createShort() {
+    if (!linkedinUrl.trim()) return;
+    try {
+      const data = await shortenUrl(linkedinUrl.trim());
+      if (data && data.short_url) setLinkedinUrl(data.short_url);
+      toast.success("Short link created: " + (data.short_url || "OK"));
+    } catch (e) {
+      toast.error("Failed: " + (e && e.message ? e.message : e));
+    }
+  }
+
+  function downloadSVG() {
+    if (!linkedinUrl.trim()) {
+      toast.error("Enter a LinkedIn URL first!");
       return;
     }
+    ensureQrLib().then(() => {
+      const q = window.qrcode(0, "H");
+      q.addData(linkedinUrl.trim());
+      q.make();
+      const modules = q.getModuleCount();
+      const size = 360;
+      const cell = size / modules;
 
-    await ensureQrLib();
-    const q = window.qrcode(0, "H");
-    q.addData(url);
-    q.make();
+      let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">`;
+      svg += `<rect width="100%" height="100%" fill="${bgColor}" />`;
 
-    const modules = q.getModuleCount();
-    const size = 360;
-    const cell = size / modules;
+      const gradId = "grad" + Date.now();
+      svg += `<defs><linearGradient id="${gradId}" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${gradientStart}"/><stop offset="100%" stop-color="${gradientEnd}"/></linearGradient></defs>`;
 
-    // Start SVG with background + gradient
-    let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-      <defs>
-        <linearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="${gradientStart}" />
-          <stop offset="100%" stop-color="${gradientEnd}" />
-        </linearGradient>
-      </defs>
-      <rect width="100%" height="100%" fill="${bgColor}" />
-    `;
-
-    // QR modules
-    for (let r = 0; r < modules; r++) {
-      for (let c = 0; c < modules; c++) {
-        if (q.isDark(r, c)) {
-          svg += `<rect x="${Math.round(c * cell)}" y="${Math.round(
-            r * cell
-          )}" width="${Math.ceil(cell)}" height="${Math.ceil(
-            cell
-          )}" fill="url(#grad)" />`;
+      for (let r = 0; r < modules; r++) {
+        for (let c = 0; c < modules; c++) {
+          if (q.isDark(r, c)) {
+            svg += `<rect x="${c * cell}" y="${r * cell}" width="${cell}" height="${cell}" fill="url(#${gradId})"/>`;
+          }
         }
       }
-    }
 
-    // Inject logo if present
-    if (logoDataUrl) {
+      // middle clear area
       const clearBox = Math.round(size * 0.28);
       const x = Math.round((size - clearBox) / 2);
       svg += `<rect x="${x}" y="${x}" width="${clearBox}" height="${clearBox}" fill="${bgColor}" />`;
-      svg += `<image href="${logoDataUrl}" x="${x}" y="${x}" width="${clearBox}" height="${clearBox}" />`;
-    }
 
-    svg += "</svg>";
+      // Add logo if present
+      if (logoDataUrl) {
+        const sideDesired = Math.round(size * (logoSize / 100));
+        const side = Math.min(clearBox, sideDesired);
+        const dx = x + (clearBox - side) / 2;
+        const dy = x + (clearBox - side) / 2;
+        svg += `<image href="${logoDataUrl}" x="${dx}" y="${dy}" width="${side}" height="${side}" />`;
+      }
 
-    const blob = new Blob([svg], { type: "image/svg+xml" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "linkedin_qr.svg";
-    a.click();
+      svg += `</svg>`;
+
+      const blob = new Blob([svg], { type: "image/svg+xml" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "linkedin_qr.svg";
+      a.click();
+      URL.revokeObjectURL(url);
+    });
   }
 
   function pdfComingSoon() {
@@ -193,7 +199,13 @@ const QRCustomizer = () => {
 
       <div className="flex gap-2 mt-3">
         <button
-          onClick={downloadPNG}
+          onClick={() => {
+            if (!canvasRef.current) return;
+            const a = document.createElement("a");
+            a.href = canvasRef.current.toDataURL("image/png");
+            a.download = "linkedin_qr.png";
+            a.click();
+          }}
           className="px-4 py-2 bg-blue-600 text-white rounded transition transform hover:scale-105"
         >
           Download PNG
@@ -222,9 +234,28 @@ const QRCustomizer = () => {
             height={360}
           />
         </div>
+
+        {/* Social buttons */}
+        <div className="mt-4 flex gap-3 justify-center">
+          <a
+            href="https://www.linkedin.com/in/prateek-srivastava-backend/"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-block bg-blue-600 text-white font-semibold px-5 py-2 rounded-lg shadow-md transform transition duration-300 hover:scale-105 hover:bg-blue-700 animate-bounce"
+          >
+            Connect with me on LinkedIn
+          </a>
+          <a
+            href="https://github.com/Prateek1308"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-block bg-black text-white font-semibold px-5 py-2 rounded-lg shadow-md transform transition duration-300 hover:scale-105"
+          >
+            ⭐ Check my GitHub
+          </a>
+        </div>
       </div>
 
-      {/* Footer credit */}
       <div className="mt-6 text-center text-sm text-gray-500">
         <p>
           Made with ❤️ by <strong>Prateek Srivastava</strong>
