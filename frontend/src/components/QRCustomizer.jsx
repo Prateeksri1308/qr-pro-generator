@@ -1,287 +1,204 @@
-import React, { useEffect, useRef, useState } from "react";
-import { shortenUrl } from "../services/api";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+// src/components/QRCustomizer.jsx
+import { useState, useRef } from "react";
+import { QRCodeCanvas } from "qrcode.react";
+import { toast } from "react-toastify";
 
-const QRCustomizer = () => {
+export default function QRCustomizer() {
   const [linkedinUrl, setLinkedinUrl] = useState("");
-  const [gradientStart, setGradientStart] = useState("#0a66c2");
-  const [gradientEnd, setGradientEnd] = useState("#00395a");
+  const [gradientStart, setGradientStart] = useState("#000000");
+  const [gradientEnd, setGradientEnd] = useState("#000000");
   const [bgColor, setBgColor] = useState("#ffffff");
   const [logoDataUrl, setLogoDataUrl] = useState(null);
-  const [logoSize, setLogoSize] = useState(25);
-  const canvasRef = useRef(null);
+  const [logoSize, setLogoSize] = useState(40);
+  const qrRef = useRef(null);
 
-  const qrReadyRef = useRef(false);
-  async function ensureQrLib() {
-    if (qrReadyRef.current) return;
-    await new Promise((resolve, reject) => {
-      const s = document.createElement("script");
-      s.src =
-        "https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js";
-      s.onload = () => {
-        qrReadyRef.current = true;
-        resolve(null);
-      };
-      s.onerror = reject;
-      document.head.appendChild(s);
-    });
-  }
+  // Upload logo
+  const handleLogoUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setLogoDataUrl(ev.target.result);
+    reader.readAsDataURL(file);
+  };
 
-  async function renderPreview() {
-    const url = linkedinUrl.trim();
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    if (!url) {
-      const ctx = canvas.getContext("2d");
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#f8fafc";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#94a3b8";
-      ctx.font = "14px sans-serif";
-      ctx.fillText("Enter LinkedIn URL to preview", 16, 24);
+  // Download PNG
+  const downloadPNG = () => {
+    if (!linkedinUrl.trim()) {
+      toast.error("Please enter a LinkedIn URL first.");
       return;
     }
-    await ensureQrLib();
-    const q = window.qrcode(0, "H");
-    q.addData(url);
-    q.make();
-    const modules = q.getModuleCount();
+    const canvas = qrRef.current.querySelector("canvas");
+    const pngUrl = canvas.toDataURL("image/png");
+    const a = document.createElement("a");
+    a.href = pngUrl;
+    a.download = "linkedin_qr.png";
+    a.click();
+  };
+
+  // Download SVG
+  const downloadSVG = () => {
+    if (!linkedinUrl.trim()) {
+      toast.error("Please enter a LinkedIn URL first.");
+      return;
+    }
     const size = 360;
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext("2d");
 
-    ctx.fillStyle = bgColor || "#fff";
-    ctx.fillRect(0, 0, size, size);
+    // Create QR matrix using qrcode-generator lib (via window)
+    const qr = window.qrcode(0, "H");
+    qr.addData(linkedinUrl.trim());
+    qr.make();
+    const count = qr.getModuleCount();
+    const cell = size / count;
 
-    const grad = ctx.createLinearGradient(0, 0, size, size);
-    grad.addColorStop(0, gradientStart);
-    grad.addColorStop(1, gradientEnd);
-    ctx.fillStyle = grad;
+    // Build SVG string
+    let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">`;
 
-    const cell = size / modules;
-    for (let r = 0; r < modules; r++) {
-      for (let c = 0; c < modules; c++) {
-        if (q.isDark(r, c)) {
-          ctx.fillRect(
-            Math.round(c * cell),
-            Math.round(r * cell),
-            Math.ceil(cell),
-            Math.ceil(cell)
-          );
+    // Background
+    svg += `<rect width="100%" height="100%" fill="${bgColor}" />`;
+
+    // Gradient
+    svg += `
+      <defs>
+        <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="${gradientStart}" />
+          <stop offset="100%" stop-color="${gradientEnd}" />
+        </linearGradient>
+      </defs>
+    `;
+
+    // QR modules
+    for (let r = 0; r < count; r++) {
+      for (let c = 0; c < count; c++) {
+        if (qr.isDark(r, c)) {
+          const x = Math.round(c * cell);
+          const y = Math.round(r * cell);
+          svg += `<rect x="${x}" y="${y}" width="${Math.ceil(cell)}" height="${Math.ceil(cell)}" fill="url(#grad)" />`;
         }
       }
     }
 
-    // Clear middle for logo
+    // White clear box in middle
     const clearBox = Math.round(size * 0.28);
     const x = Math.round((size - clearBox) / 2);
-    ctx.fillStyle = bgColor || "#fff";
-    ctx.fillRect(x, x, clearBox, clearBox);
+    svg += `<rect x="${x}" y="${x}" width="${clearBox}" height="${clearBox}" fill="${bgColor}" />`;
 
+    // Logo (if uploaded)
     if (logoDataUrl) {
-      await new Promise((res) => {
-        const img = new Image();
-        img.onload = () => {
-          const sideDesired = Math.round(size * (logoSize / 100));
-          const side = Math.min(clearBox, sideDesired);
-          const scale = Math.max(side / img.width, side / img.height);
-          const dw = img.width * scale,
-            dh = img.height * scale;
-          const dx = x + (clearBox - dw) / 2;
-          const dy = x + (clearBox - dh) / 2;
-          ctx.fillStyle = bgColor || "#fff";
-          ctx.fillRect(x, x, side, side);
-          ctx.drawImage(img, dx, dy, dw, dh);
-          res(null);
-        };
-        img.src = logoDataUrl;
-      });
+      const sideDesired = Math.round(size * (logoSize / 100));
+      const side = Math.min(clearBox, sideDesired);
+      const dx = x + (clearBox - side) / 2;
+      const dy = x + (clearBox - side) / 2;
+      svg += `<image href="${logoDataUrl}" x="${dx}" y="${dy}" width="${side}" height="${side}" />`;
     }
-  }
 
-  useEffect(() => {
-    renderPreview();
-  }, [linkedinUrl, gradientStart, gradientEnd, bgColor, logoDataUrl, logoSize]);
+    svg += `</svg>`;
 
-  function onDrop(e) {
-    e.preventDefault();
-    const f = e.dataTransfer.files && e.dataTransfer.files[0];
-    if (!f) return;
-    const fr = new FileReader();
-    fr.onload = (ev) => setLogoDataUrl(ev.target.result);
-    fr.readAsDataURL(f);
-  }
-
-  async function createShort() {
-    if (!linkedinUrl.trim()) return;
-    try {
-      const data = await shortenUrl(linkedinUrl.trim());
-      if (data && data.short_url) setLinkedinUrl(data.short_url);
-      toast.success("Short link created: " + (data.short_url || "OK"));
-    } catch (e) {
-      toast.error("Failed: " + (e && e.message ? e.message : e));
-    }
-  }
-
-  function downloadSVG() {
-    if (!linkedinUrl.trim()) {
-      toast.error("Enter a LinkedIn URL first!");
-      return;
-    }
-    ensureQrLib().then(() => {
-      const q = window.qrcode(0, "H");
-      q.addData(linkedinUrl.trim());
-      q.make();
-      const modules = q.getModuleCount();
-      const size = 360;
-      const cell = size / modules;
-
-      let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">`;
-      svg += `<rect width="100%" height="100%" fill="${bgColor}" />`;
-
-      const gradId = "grad" + Date.now();
-      svg += `<defs><linearGradient id="${gradId}" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${gradientStart}"/><stop offset="100%" stop-color="${gradientEnd}"/></linearGradient></defs>`;
-
-      for (let r = 0; r < modules; r++) {
-        for (let c = 0; c < modules; c++) {
-          if (q.isDark(r, c)) {
-            svg += `<rect x="${c * cell}" y="${r * cell}" width="${cell}" height="${cell}" fill="url(#${gradId})"/>`;
-          }
-        }
-      }
-
-      // middle clear area
-      const clearBox = Math.round(size * 0.28);
-      const x = Math.round((size - clearBox) / 2);
-      svg += `<rect x="${x}" y="${x}" width="${clearBox}" height="${clearBox}" fill="${bgColor}" />`;
-
-      // Add logo if present
-      if (logoDataUrl) {
-        const sideDesired = Math.round(size * (logoSize / 100));
-        const side = Math.min(clearBox, sideDesired);
-        const dx = x + (clearBox - side) / 2;
-        const dy = x + (clearBox - side) / 2;
-        svg += `<image href="${logoDataUrl}" x="${dx}" y="${dy}" width="${side}" height="${side}" />`;
-      }
-
-      svg += `</svg>`;
-
-      const blob = new Blob([svg], { type: "image/svg+xml" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "linkedin_qr.svg";
-      a.click();
-      URL.revokeObjectURL(url);
-    });
-  }
-
-  function pdfComingSoon() {
-    toast.info("📄 PDF export is not available yet. Coming soon!");
-  }
+    // Download
+    const blob = new Blob([svg], { type: "image/svg+xml" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "linkedin_qr.svg";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
-    <div className="p-4 bg-white rounded shadow">
-      <ToastContainer position="bottom-right" />
-      <h2 className="font-semibold mb-2">Customize QR</h2>
+    <div className="space-y-4 p-4 border rounded-xl shadow">
+      <h2 className="text-xl font-bold">LinkedIn QR Generator</h2>
 
-      <label className="block mb-2">
-        <span className="text-sm text-gray-600">LinkedIn URL</span>
-        <input
-          value={linkedinUrl}
-          onChange={(e) => setLinkedinUrl(e.target.value)}
-          placeholder="https://www.linkedin.com/in/yourname"
-          className="w-full border px-3 py-2 rounded"
+      {/* Input */}
+      <input
+        type="text"
+        value={linkedinUrl}
+        onChange={(e) => setLinkedinUrl(e.target.value)}
+        placeholder="Enter LinkedIn profile URL"
+        className="w-full border p-2 rounded"
+      />
+
+      {/* Customization */}
+      <div className="flex gap-4">
+        <div>
+          <label className="block text-sm">Gradient Start</label>
+          <input
+            type="color"
+            value={gradientStart}
+            onChange={(e) => setGradientStart(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="block text-sm">Gradient End</label>
+          <input
+            type="color"
+            value={gradientEnd}
+            onChange={(e) => setGradientEnd(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="block text-sm">Background</label>
+          <input
+            type="color"
+            value={bgColor}
+            onChange={(e) => setBgColor(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* Logo upload */}
+      <div>
+        <label className="block text-sm">Upload Logo</label>
+        <input type="file" accept="image/*" onChange={handleLogoUpload} />
+        {logoDataUrl && (
+          <div className="mt-2">
+            <label className="text-sm">Logo Size (%)</label>
+            <input
+              type="range"
+              min="20"
+              max="60"
+              value={logoSize}
+              onChange={(e) => setLogoSize(Number(e.target.value))}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Preview */}
+      <div ref={qrRef} className="p-4 bg-white inline-block rounded">
+        <QRCodeCanvas
+          value={linkedinUrl || "https://linkedin.com"}
+          size={360}
+          bgColor={bgColor}
+          fgColor={gradientStart}
+          level="H"
+          includeMargin={false}
+          imageSettings={
+            logoDataUrl
+              ? {
+                  src: logoDataUrl,
+                  height: (logoSize / 100) * 360,
+                  width: (logoSize / 100) * 360,
+                  excavate: true,
+                }
+              : null
+          }
         />
-      </label>
+      </div>
 
-      <div className="flex gap-2 mt-3">
+      {/* Buttons */}
+      <div className="flex gap-4">
         <button
-          onClick={() => {
-            if (!canvasRef.current) return;
-            const a = document.createElement("a");
-            a.href = canvasRef.current.toDataURL("image/png");
-            a.download = "linkedin_qr.png";
-            a.click();
-          }}
-          className="px-4 py-2 bg-blue-600 text-white rounded transition transform hover:scale-105"
+          onClick={downloadPNG}
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
         >
           Download PNG
         </button>
         <button
           onClick={downloadSVG}
-          className="px-4 py-2 bg-gray-200 rounded transition hover:bg-gray-300"
+          className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
         >
           Download SVG
         </button>
-        <button
-          onClick={pdfComingSoon}
-          className="px-4 py-2 bg-gray-200 rounded transition hover:bg-gray-300"
-        >
-          Download PDF
-        </button>
-      </div>
-
-      <div className="mt-4">
-        <h2 className="font-semibold mb-2">Live Preview</h2>
-        <div className="w-full h-96 flex items-center justify-center border border-gray-100 rounded bg-white">
-          <canvas
-            ref={canvasRef}
-            className="rounded shadow"
-            width={360}
-            height={360}
-          />
-        </div>
-
-        {/* Social buttons */}
-        <div className="mt-4 flex gap-3 justify-center">
-          <a
-            href="https://www.linkedin.com/in/prateek-srivastava-backend/"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-block bg-blue-600 text-white font-semibold px-5 py-2 rounded-lg shadow-md transform transition duration-300 hover:scale-105 hover:bg-blue-700 animate-bounce"
-          >
-            Connect with me on LinkedIn
-          </a>
-          <a
-            href="https://github.com/Prateek1308"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-block bg-black text-white font-semibold px-5 py-2 rounded-lg shadow-md transform transition duration-300 hover:scale-105"
-          >
-            ⭐ Check my GitHub
-          </a>
-        </div>
-      </div>
-
-      <div className="mt-6 text-center text-sm text-gray-500">
-        <p>
-          Made with ❤️ by <strong>Prateek Srivastava</strong>
-        </p>
-        <p>
-          <a
-            href="https://www.linkedin.com/in/prateek-srivastava-backend/"
-            target="_blank"
-            rel="noreferrer"
-            className="text-blue-600"
-          >
-            LinkedIn
-          </a>{" "}
-          |{" "}
-          <a
-            href="https://github.com/Prateek1308"
-            target="_blank"
-            rel="noreferrer"
-            className="text-gray-800"
-          >
-            GitHub
-          </a>
-        </p>
       </div>
     </div>
   );
-};
-
-export default QRCustomizer;
+}
