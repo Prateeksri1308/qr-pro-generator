@@ -63,12 +63,13 @@ const QRCustomizer = () => {
       }
     }
 
-    const clearBox = Math.round(size * 0.28);
-    const x = Math.round((size - clearBox)/2);
-    ctx.fillStyle = bgColor || '#fff';
-    ctx.fillRect(x, x, clearBox, clearBox);
-
+    // Only clear + draw logo if uploaded
     if (logoDataUrl) {
+      const clearBox = Math.round(size * 0.28);
+      const x = Math.round((size - clearBox)/2);
+      ctx.fillStyle = bgColor || '#fff';
+      ctx.fillRect(x, x, clearBox, clearBox);
+
       await new Promise(res => {
         const img = new Image();
         img.onload = () => {
@@ -114,6 +115,52 @@ const QRCustomizer = () => {
     toast.info('📄 PDF export is not available yet. Coming soon!');
   }
 
+  // ✅ New: Export as SVG
+  async function downloadSVG() {
+    const url = linkedinUrl.trim();
+    if (!url) {
+      toast.error("Enter a URL first");
+      return;
+    }
+    await ensureQrLib();
+    const q = window.qrcode(0, 'H');
+    q.addData(url); q.make();
+    const svgTag = q.createSvgTag({
+      scalable: true,
+      margin: 0
+    });
+
+    // If no logo → use plain QR
+    let finalSvg = svgTag;
+
+    // If logo → inject <image> in the middle
+    if (logoDataUrl) {
+      const parser = new DOMParser();
+      const svgDoc = parser.parseFromString(svgTag, "image/svg+xml");
+      const svgElem = svgDoc.documentElement;
+      const size = parseInt(svgElem.getAttribute("width"));
+      const clearBox = Math.round(size * 0.28);
+      const x = Math.round((size - clearBox)/2);
+      const y = x;
+
+      const imgTag = svgDoc.createElementNS("http://www.w3.org/2000/svg", "image");
+      imgTag.setAttribute("href", logoDataUrl);
+      imgTag.setAttribute("x", x);
+      imgTag.setAttribute("y", y);
+      imgTag.setAttribute("width", clearBox);
+      imgTag.setAttribute("height", clearBox);
+      svgElem.appendChild(imgTag);
+
+      finalSvg = new XMLSerializer().serializeToString(svgDoc);
+    }
+
+    const blob = new Blob([finalSvg], { type: "image/svg+xml" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "linkedin_qr.svg";
+    a.click();
+  }
+
   return (
     <div className="p-4 bg-white rounded shadow">
       <ToastContainer position="bottom-right" />
@@ -125,9 +172,27 @@ const QRCustomizer = () => {
       </label>
 
       <div className="flex gap-2 mt-3">
-        <button onClick={() => { if (!canvasRef.current) return; const a=document.createElement('a'); a.href=canvasRef.current.toDataURL('image/png'); a.download='linkedin_qr.png'; a.click(); }} className="px-4 py-2 bg-blue-600 text-white rounded transition transform hover:scale-105">Download PNG</button>
-        <button onClick={() => toast.info('SVG export will be available soon!')} className="px-4 py-2 bg-gray-200 rounded transition hover:bg-gray-300">Download SVG</button>
-        <button onClick={pdfComingSoon} className="px-4 py-2 bg-gray-200 rounded transition hover:bg-gray-300">Download PDF</button>
+        <button
+          onClick={() => {
+            if (!canvasRef.current) return;
+            const a=document.createElement('a');
+            a.href=canvasRef.current.toDataURL('image/png');
+            a.download='linkedin_qr.png';
+            a.click();
+          }}
+          className="px-4 py-2 bg-blue-600 text-white rounded transition transform hover:scale-105"
+        >
+          Download PNG
+        </button>
+        <button
+          onClick={downloadSVG}
+          className="px-4 py-2 bg-gray-200 rounded transition hover:bg-gray-300"
+        >
+          Download SVG
+        </button>
+        <button onClick={pdfComingSoon} className="px-4 py-2 bg-gray-200 rounded transition hover:bg-gray-300">
+          Download PDF
+        </button>
       </div>
 
       <div className="mt-4">
