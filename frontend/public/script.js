@@ -226,50 +226,57 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   downloadSvg.addEventListener("click", () => {
-    const payload = buildPayload();
-    if (!payload) return showToast("⚠️ No data to export", "warn");
+  const payload = buildPayload();
+  if (!payload) return showToast("⚠️ No data to export", "warn");
 
-    const q = window.qrcode(0, "H");
-    q.addData(payload);
-    q.make();
-    const modules = q.getModuleCount();
-    const size = 360, cell = size / modules;
-    const gs = gradientStart.value, ge = gradientEnd.value, bg = bgColor.value;
+  const q = window.qrcode(0, "H");
+  q.addData(payload);
+  q.make();
+  const modules = q.getModuleCount();
+  const size = 360, cell = size / modules;
+  const gs = gradientStart.value, ge = gradientEnd.value, bg = bgColor.value;
 
-    let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">`;
-    svg += `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${gs}"/><stop offset="100%" stop-color="${ge}"/></linearGradient></defs>`;
-    svg += `<rect width="100%" height="100%" fill="${bg}"/>`;
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" 
+                  xmlns:xlink="http://www.w3.org/1999/xlink" 
+                  width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">`;
+  svg += `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="${gs}"/>
+            <stop offset="100%" stop-color="${ge}"/>
+          </linearGradient></defs>`;
+  svg += `<rect width="100%" height="100%" fill="${bg}"/>`;
 
-    for (let r = 0; r < modules; r++) {
-      for (let c = 0; c < modules; c++) {
-        if (q.isDark(r, c)) {
-          const x = Math.floor(c * cell), y = Math.floor(r * cell), s = Math.ceil(cell);
-          svg += `<rect x="${x}" y="${y}" width="${s}" height="${s}" fill="url(#g)"/>`;
-        }
+  for (let r = 0; r < modules; r++) {
+    for (let c = 0; c < modules; c++) {
+      if (q.isDark(r, c)) {
+        const x = Math.floor(c * cell), y = Math.floor(r * cell), s = Math.ceil(cell);
+        svg += `<rect x="${x}" y="${y}" width="${s}" height="${s}" fill="url(#g)"/>`;
       }
     }
+  }
 
-    // ✅ Only embed logo if uploaded
-if (logoDataUrl) {
-  const side = Math.round(size * (logoSize.value / 100));
-  const pos = Math.round((size - side) / 2);
-  svg += `<rect x="${pos}" y="${pos}" width="${side}" height="${side}" fill="${bg}"/>`; // background under logo
-  svg += `<image href="${logoDataUrl}" x="${pos}" y="${pos}" width="${side}" height="${side}" />`;
-}
+  // ✅ Embed logo
+  if (logoDataUrl) {
+    const side = Math.round(size * (logoSize.value / 100));
+    const pos = Math.round((size - side) / 2);
+    svg += `<rect x="${pos}" y="${pos}" width="${side}" height="${side}" fill="${bg}"/>`;
+    svg += `<image xlink:href="${logoDataUrl}" x="${pos}" y="${pos}" width="${side}" height="${side}" />`;
+  }
 
+  svg += `</svg>`;
 
-    const blob = new Blob([svg], { type: "image/svg+xml" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "qr.svg";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const blob = new Blob([svg], { type: "image/svg+xml" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "qr.svg";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 
-    showToast("✅ SVG downloaded", "success");
-  });
+  showToast("✅ SVG downloaded", "success");
+});
+
 
   downloadPdf.addEventListener("click", () => {
     showToast("📄 PDF export available in Pro version soon!", "info");
