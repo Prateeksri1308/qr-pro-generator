@@ -123,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return "";
   }
 
-  // QR preview
+  // ✅ QR preview with logo-safe gap
   function renderPreview() {
     const payload = buildPayload();
     if (!payload) {
@@ -152,20 +152,32 @@ document.addEventListener('DOMContentLoaded', () => {
     grad.addColorStop(1, gradientEnd.value);
 
     const cell = size / modules;
+
+    // calculate logo safe zone
+    let logoPos = null;
+    if (logoDataUrl) {
+      const side = Math.round(size * (logoSize.value / 100));
+      logoPos = { pos: Math.round((size - side) / 2), side };
+    }
+
+    // draw modules skipping logo area
+    ctx.fillStyle = grad;
     for (let r = 0; r < modules; r++) {
       for (let c = 0; c < modules; c++) {
         if (q.isDark(r, c)) {
-          ctx.fillStyle = grad;
-          ctx.fillRect(Math.round(c * cell), Math.round(r * cell), Math.ceil(cell), Math.ceil(cell));
+          const x = Math.floor(c * cell), y = Math.floor(r * cell), s = Math.ceil(cell);
+          if (logoPos && x >= logoPos.pos && x < logoPos.pos + logoPos.side &&
+              y >= logoPos.pos && y < logoPos.pos + logoPos.side) continue;
+          ctx.fillRect(x, y, s, s);
         }
       }
     }
 
+    // draw logo last
     if (logoDataUrl) {
       const img = new Image();
       img.onload = () => {
-        const side = Math.round(size * (logoSize.value / 100));
-        ctx.drawImage(img, (size - side) / 2, (size - side) / 2, side, side);
+        ctx.drawImage(img, logoPos.pos, logoPos.pos, logoPos.side, logoPos.side);
         mount(canvas);
       };
       img.src = logoDataUrl;
@@ -220,63 +232,70 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!lastCanvas) return;
     const a = document.createElement("a");
     a.href = lastCanvas.toDataURL("image/png");
-    a.download = "qr_pro.png";
+    a.download = "qr.png";
     a.click();
     showToast("✅ PNG downloaded!", "success");
   });
 
   downloadSvg.addEventListener("click", () => {
-  const payload = buildPayload();
-  if (!payload) return showToast("⚠️ No data to export", "warn");
+    const payload = buildPayload();
+    if (!payload) return showToast("⚠️ No data to export", "warn");
 
-  const q = window.qrcode(0, "H");
-  q.addData(payload);
-  q.make();
-  const modules = q.getModuleCount();
-  const size = 360, cell = size / modules;
-  const gs = gradientStart.value, ge = gradientEnd.value, bg = bgColor.value;
+    const q = window.qrcode(0, "H");
+    q.addData(payload);
+    q.make();
+    const modules = q.getModuleCount();
+    const size = 360, cell = size / modules;
+    const gs = gradientStart.value, ge = gradientEnd.value, bg = bgColor.value;
 
-  let svg = `<svg xmlns="http://www.w3.org/2000/svg" 
-                  xmlns:xlink="http://www.w3.org/1999/xlink" 
-                  width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">`;
-  svg += `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stop-color="${gs}"/>
-            <stop offset="100%" stop-color="${ge}"/>
-          </linearGradient></defs>`;
-  svg += `<rect width="100%" height="100%" fill="${bg}"/>`;
+    let svg = `<svg xmlns="http://www.w3.org/2000/svg" 
+                    xmlns:xlink="http://www.w3.org/1999/xlink" 
+                    width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">`;
+    svg += `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="${gs}"/>
+              <stop offset="100%" stop-color="${ge}"/>
+            </linearGradient></defs>`;
+    svg += `<rect width="100%" height="100%" fill="${bg}"/>`;
 
-  for (let r = 0; r < modules; r++) {
-    for (let c = 0; c < modules; c++) {
-      if (q.isDark(r, c)) {
-        const x = Math.floor(c * cell), y = Math.floor(r * cell), s = Math.ceil(cell);
-        svg += `<rect x="${x}" y="${y}" width="${s}" height="${s}" fill="url(#g)"/>`;
+    let logoPos = null;
+    if (logoDataUrl) {
+      const side = Math.round(size * (logoSize.value / 100));
+      logoPos = { pos: Math.round((size - side) / 2), side };
+    }
+
+    // draw modules skipping logo zone
+    for (let r = 0; r < modules; r++) {
+      for (let c = 0; c < modules; c++) {
+        if (q.isDark(r, c)) {
+          const x = Math.floor(c * cell), y = Math.floor(r * cell), s = Math.ceil(cell);
+          if (logoPos && x >= logoPos.pos && x < logoPos.pos + logoPos.side &&
+              y >= logoPos.pos && y < logoPos.pos + logoPos.side) continue;
+          svg += `<rect x="${x}" y="${y}" width="${s}" height="${s}" fill="url(#g)"/>`;
+        }
       }
     }
-  }
 
-  // ✅ Embed logo
-  if (logoDataUrl) {
-    const side = Math.round(size * (logoSize.value / 100));
-    const pos = Math.round((size - side) / 2);
-    svg += `<rect x="${pos}" y="${pos}" width="${side}" height="${side}" fill="${bg}"/>`;
-    svg += `<image xlink:href="${logoDataUrl}" x="${pos}" y="${pos}" width="${side}" height="${side}" />`;
-  }
+    // logo
+    if (logoDataUrl) {
+      svg += `<image xlink:href="${logoDataUrl}" 
+                     x="${logoPos.pos}" y="${logoPos.pos}" 
+                     width="${logoPos.side}" height="${logoPos.side}" />`;
+    }
 
-  svg += `</svg>`;
+    svg += `</svg>`;
 
-  const blob = new Blob([svg], { type: "image/svg+xml" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "qr.svg";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+    const blob = new Blob([svg], { type: "image/svg+xml" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "qr.svg";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 
-  showToast("✅ SVG downloaded", "success");
-});
-
+    showToast("✅ SVG downloaded", "success");
+  });
 
   downloadPdf.addEventListener("click", () => {
     showToast("📄 PDF export available in Pro version soon!", "info");
